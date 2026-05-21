@@ -432,7 +432,7 @@ function normalizeMaxTokens(value) {
 
 function defaultMaxTokensForPurpose(purpose) {
   if (purpose === "connection-test") return 32;
-  if (purpose === "manual-output-test") return 800;
+  if (purpose === "manual-output-test") return 240;
   return null;
 }
 
@@ -440,7 +440,7 @@ function resolveMaxTokensForPurpose(purpose, requested) {
   const fallback = defaultMaxTokensForPurpose(purpose);
   if (purpose === "manual-output-test") {
     const parsed = Number(requested);
-    return Math.max(Number.isFinite(parsed) ? parsed : 0, fallback || 800);
+    return Math.max(Number.isFinite(parsed) ? parsed : 0, fallback || 240);
   }
   return requested || fallback;
 }
