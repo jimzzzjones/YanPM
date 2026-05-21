@@ -4,7 +4,7 @@ const AUTH_KEY = "yanpm-auth-v1";
 const DAY = 24 * 60 * 60 * 1000;
 const AI_TIMEOUT_MS = 25000;
 const AI_CONNECTION_TEST_MAX_TOKENS = 32;
-const AI_OUTPUT_TEST_MAX_TOKENS = 800;
+const AI_OUTPUT_TEST_MAX_TOKENS = 240;
 const PROJECT_DATA_KEYS = ["project", "members", "milestones", "tasks", "risks", "decisions", "memory", "proposals", "chat", "audit"];
 const volatileStorage = new Map();
 const backendBridge = {
@@ -2469,6 +2469,29 @@ function buildAiProjectContext() {
   };
 }
 
+function buildAiQuickTestContext() {
+  return {
+    project: {
+      name: state.project.name,
+      stage: state.project.stage,
+      healthScore: state.project.healthScore
+    },
+    currentFocus: state.tasks
+      .filter((task) => task.status !== "done")
+      .slice(0, 3)
+      .map((task) => ({
+        title: task.title,
+        owner: task.owner || "未设置",
+        due: task.due || "未设置",
+        status: task.status
+      })),
+    openRisks: state.risks
+      .filter((risk) => risk.status !== "closed")
+      .slice(0, 2)
+      .map((risk) => risk.title)
+  };
+}
+
 async function callAiJson(payload) {
   const text = await callAiText({
     ...payload,
@@ -4360,9 +4383,9 @@ async function runAiOutputTest() {
         : await callAiText({
             purpose: "manual-output-test",
             instruction:
-              "你是中文 AI 项目管理助理。请基于项目上下文回答用户测试提示，输出要具体、自然、可执行，控制在 300 字以内。",
+              "你是中文 AI 项目管理助理。请基于项目上下文回答用户测试提示，输出要具体、自然、可执行，控制在 120 字以内。",
             user: prompt,
-            context: buildAiProjectContext(),
+            context: buildAiQuickTestContext(),
             maxTokens: AI_OUTPUT_TEST_MAX_TOKENS
           });
     $("#aiTestOutput").value = text || emptyAiOutputMessage();
