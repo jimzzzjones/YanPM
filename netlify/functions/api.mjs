@@ -1,7 +1,8 @@
 import { getStore } from "@netlify/blobs";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
-const aiTimeoutMs = Number(process.env.AI_TIMEOUT_MS || 45000);
+const configuredAiTimeoutMs = Number(process.env.AI_TIMEOUT_MS || 45000);
+const aiTimeoutMs = Number.isFinite(configuredAiTimeoutMs) ? Math.max(configuredAiTimeoutMs, 45000) : 45000;
 const authDevMode = process.env.AUTH_DEV_MODE !== "0";
 
 export async function handler(event) {
