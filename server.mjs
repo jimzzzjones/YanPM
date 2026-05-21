@@ -363,7 +363,7 @@ async function handleAi(req, res) {
     return sendJson(res, 400, { error: "缺少模型名或 Endpoint ID。请在前端 AI 设置中填写。" });
   }
 
-  const maxTokens = normalizeMaxTokens(body.maxTokens || defaultMaxTokensForPurpose(body.purpose));
+  const maxTokens = normalizeMaxTokens(resolveMaxTokensForPurpose(body.purpose, body.maxTokens));
   const upstream =
     mode === "openai-chat"
       ? {
@@ -407,8 +407,17 @@ function normalizeMaxTokens(value) {
 
 function defaultMaxTokensForPurpose(purpose) {
   if (purpose === "connection-test") return 32;
-  if (purpose === "manual-output-test") return 220;
+  if (purpose === "manual-output-test") return 800;
   return null;
+}
+
+function resolveMaxTokensForPurpose(purpose, requested) {
+  const fallback = defaultMaxTokensForPurpose(purpose);
+  if (purpose === "manual-output-test") {
+    const parsed = Number(requested);
+    return Math.max(Number.isFinite(parsed) ? parsed : 0, fallback || 800);
+  }
+  return requested || fallback;
 }
 
 async function runCodexTest({ purpose, instruction, prompt }) {
