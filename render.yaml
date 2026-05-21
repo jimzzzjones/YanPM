@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: yanpm-web
+    runtime: node
+    plan: free
+    buildCommand: npm run release:check
+    startCommand: node server.mjs
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: AUTH_DEV_MODE
+        value: "1"
+      - key: YANPM_ENABLE_CODEX_TEST
+        value: "0"
+      - key: YANPM_PUBLIC_URL
+        sync: false
+      - key: AI_API_KEY
+        sync: false
+      - key: WECHAT_WEB_APP_ID
+        sync: false
+      - key: WECHAT_WEB_APP_SECRET
+        sync: false
+      - key: WECOM_CORP_ID
+        sync: false
+      - key: WECOM_AGENT_ID
+        sync: false
+      - key: WECOM_APP_SECRET
+        sync: false

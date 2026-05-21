@@ -1,0 +1,15 @@
+{
+  "name": "yanpm-language-project-manager",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node --check app.js && node --check server.mjs && node --check netlify/functions/api.mjs && node --check scripts/build-netlify.mjs",
+    "release:check": "npm run check",
+    "netlify:build": "npm run check && node scripts/build-netlify.mjs"
+  },
+  "dependencies": {
+    "@netlify/blobs": "latest"
+  }
+}

@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YanPM - 语言驱动项目管理</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="主导航">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">Y</div>
+          <div>
+            <strong>YanPM</strong>
+            <span>语言管理项目</span>
+          </div>
+        </div>
+
+        <nav class="nav-list" id="navList">
+          <button class="nav-item" data-view="portfolio" type="button">
+            <span class="nav-icon" data-icon="portfolio"></span>
+            项目组合
+          </button>
+          <button class="nav-item is-active" data-view="dashboard" type="button">
+            <span class="nav-icon" data-icon="layout"></span>
+            工作台
+          </button>
+          <button class="nav-item" data-view="review" type="button">
+            <span class="nav-icon" data-icon="check"></span>
+            待确认
+            <span class="nav-count" id="reviewCount">0</span>
+          </button>
+          <button class="nav-item" data-view="tasks" type="button">
+            <span class="nav-icon" data-icon="list"></span>
+            任务
+          </button>
+          <button class="nav-item" data-view="risks" type="button">
+            <span class="nav-icon" data-icon="alert"></span>
+            风险
+          </button>
+          <button class="nav-item" data-view="team" type="button">
+            <span class="nav-icon" data-icon="users"></span>
+            团队
+          </button>
+          <button class="nav-item" data-view="reports" type="button">
+            <span class="nav-icon" data-icon="report"></span>
+            汇报
+          </button>
+          <button class="nav-item" data-view="memory" type="button">
+            <span class="nav-icon" data-icon="database"></span>
+            记忆
+          </button>
+          <button class="nav-item" data-view="audit" type="button">
+            <span class="nav-icon" data-icon="list"></span>
+            审计
+          </button>
+        </nav>
+
+        <div class="sidebar-foot">
+          <span>本地体验版</span>
+          <button id="resetDemoBtn" class="text-button" type="button">重置数据</button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">AI-Native Project Management</p>
+            <h1 id="viewTitle">项目工作台</h1>
+          </div>
+          <div class="topbar-actions">
+            <label class="project-switcher">
+              <span>当前项目</span>
+              <select id="projectSelect" aria-label="切换项目"></select>
+            </label>
+            <button class="user-button" id="authBtn" type="button" title="微信快捷登录">
+              <span data-icon="users"></span>
+              <span id="authName">未登录</span>
+            </button>
+            <button class="icon-button" id="newProjectBtn" type="button" aria-label="新建项目" title="新建项目">
+              <span data-icon="plus"></span>
+            </button>
+            <button class="icon-button" id="duplicateProjectBtn" type="button" aria-label="复制当前项目" title="复制当前项目">
+              <span data-icon="copy"></span>
+            </button>
+            <button class="icon-button" id="archiveProjectBtn" type="button" aria-label="归档当前项目" title="归档当前项目">
+              <span data-icon="database"></span>
+            </button>
+            <button class="icon-button" id="aiSettingsBtn" type="button" aria-label="AI 设置" title="AI 设置">
+              <span data-icon="settings"></span>
+            </button>
+            <button class="icon-button" id="exportBtn" type="button" aria-label="导出项目数据" title="导出项目数据">
+              <span data-icon="download"></span>
+            </button>
+            <label class="icon-button file-trigger" aria-label="导入项目数据" title="导入项目数据">
+              <span data-icon="upload"></span>
+              <input id="importFile" type="file" accept="application/json" />
+            </label>
+          </div>
+        </header>
+
+        <section class="view" id="portfolioView" data-view="portfolio">
+          <div class="portfolio-layout">
+            <section class="focus-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Portfolio</p>
+                  <h2>项目组合总览</h2>
+                </div>
+                <button class="primary-button" id="newProjectHeroBtn" type="button">
+                  <span data-icon="plus"></span>
+                  新建项目
+                </button>
+              </div>
+              <div class="portfolio-metrics" id="portfolioMetrics"></div>
+            </section>
+
+            <section class="work-section">
+              <div class="section-heading">
+                <div>
+                  <h2>并行项目</h2>
+                  <p>每个项目独立维护任务、风险、里程碑、记忆和汇报。</p>
+                </div>
+              </div>
+              <div class="project-grid" id="projectGrid"></div>
+            </section>
+
+            <section class="work-section">
+              <div class="section-heading">
+                <div>
+                  <h2>跨项目负载</h2>
+                  <p>按负责人合并所有未归档项目的待办、阻塞和风险。</p>
+                </div>
+              </div>
+              <div class="portfolio-people" id="portfolioPeople"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view is-active" id="dashboardView" data-view="dashboard">
+          <div class="dashboard-grid">
+            <section class="focus-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Current Project</p>
+                  <h2 id="projectName">YanPM 语言项目管理内测</h2>
+                </div>
+                <span class="status-pill" id="projectPhase">MVP 验证</span>
+              </div>
+              <div class="health-row">
+                <div class="health-score">
+                  <span id="healthScore">78</span>
+                  <small>健康度</small>
+                </div>
+                <div class="health-copy">
+                  <p id="projectNarrative"></p>
+                  <div class="progress-track" aria-label="项目健康度">
+                    <span id="healthBar"></span>
+                  </div>
+                  <div class="health-reasons" id="healthReasonList"></div>
+                </div>
+              </div>
+              <canvas id="signalCanvas" width="760" height="250" aria-label="项目状态信号图"></canvas>
+            </section>
+
+            <section class="summary-strip" aria-label="项目摘要">
+              <div>
+                <span id="metricActive">0</span>
+                <small>进行中</small>
+              </div>
+              <div>
+                <span id="metricBlocked">0</span>
+                <small>阻塞</small>
+              </div>
+              <div>
+                <span id="metricDue">0</span>
+                <small>7 天内到期</small>
+              </div>
+              <div>
+                <span id="metricRisks">0</span>
+                <small>开放风险</small>
+              </div>
+            </section>
+
+            <section class="work-section">
+              <div class="section-heading">
+                <h2>AI 下一步建议</h2>
+                <button id="refreshAdviceBtn" class="text-button" type="button">重新判断</button>
+              </div>
+              <div class="advice-list" id="adviceList"></div>
+            </section>
+
+            <section class="work-section">
+              <div class="section-heading">
+                <h2>追踪信号</h2>
+                <button class="text-button" data-jump="team" type="button">查看团队</button>
+              </div>
+              <div class="signal-list" id="trackingSignalList"></div>
+            </section>
+
+            <section class="work-section">
+              <div class="section-heading">
+                <h2>里程碑</h2>
+                <button class="text-button" data-jump="reports" type="button">生成汇报</button>
+              </div>
+              <div class="milestone-list" id="milestoneSummaryList"></div>
+            </section>
+
+            <section class="work-section">
+              <div class="section-heading">
+                <h2>本周重点</h2>
+                <button class="text-button" data-focus-global type="button">继续输入</button>
+              </div>
+              <div class="task-list compact" id="priorityTaskList"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="reviewView" data-view="review">
+          <div class="review-layout">
+            <section class="work-section">
+              <div class="section-heading">
+                <div>
+                  <h2>待确认变更</h2>
+                  <p>AI 先提出可执行更新，人确认后才写入项目状态。</p>
+                </div>
+                <div class="button-row">
+                  <button class="secondary-button" id="clearRejectedBtn" type="button">清理已忽略</button>
+                  <button class="primary-button" id="approveAllBtn" type="button">全部确认</button>
+                </div>
+              </div>
+              <div class="proposal-list" id="proposalList"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="tasksView" data-view="tasks">
+          <div class="work-section">
+            <div class="section-heading">
+              <div>
+                <h2>任务管理</h2>
+                <p>这些任务来自语言输入、会议纪要和人工确认。</p>
+              </div>
+              <div class="button-row">
+                <div class="segmented" id="taskViewMode" role="tablist" aria-label="任务视图">
+                  <button class="is-active" data-task-view="board" type="button">看板</button>
+                  <button data-task-view="gantt" type="button">甘特</button>
+                </div>
+                <button class="primary-button" id="manualTaskBtn" type="button">
+                  <span data-icon="plus"></span>
+                  新建任务
+                </button>
+              </div>
+            </div>
+            <div class="filters" id="taskFilters">
+              <button class="is-active" data-filter="all" type="button">全部</button>
+              <button data-filter="todo" type="button">待处理</button>
+              <button data-filter="doing" type="button">进行中</button>
+              <button data-filter="blocked" type="button">阻塞</button>
+              <button data-filter="done" type="button">已完成</button>
+            </div>
+            <div class="task-board" id="taskBoard"></div>
+          </div>
+        </section>
+
+        <section class="view" id="risksView" data-view="risks">
+          <div class="work-section">
+            <div class="section-heading">
+              <div>
+                <h2>风险与阻塞</h2>
+                <p>从会议和任务状态中持续聚合。</p>
+              </div>
+              <button class="primary-button" id="manualRiskBtn" type="button">
+                <span data-icon="plus"></span>
+                新建风险
+              </button>
+            </div>
+            <div class="risk-list" id="riskList"></div>
+          </div>
+        </section>
+
+        <section class="view" id="teamView" data-view="team">
+          <div class="team-layout">
+            <section class="work-section">
+              <div class="section-heading">
+                <div>
+                  <h2>团队负载</h2>
+                  <p>按负责人聚合待办、阻塞、延期和风险。</p>
+                </div>
+              </div>
+              <div class="people-grid" id="peopleGrid"></div>
+            </section>
+            <section class="work-section">
+              <div class="section-heading">
+                <div>
+                  <h2>跟进消息</h2>
+                  <p>可直接发给负责人确认进展。</p>
+                </div>
+                <button class="secondary-button" id="copyFollowupsBtn" type="button">
+                  <span data-icon="copy"></span>
+                  复制全部
+                </button>
+              </div>
+              <div class="followup-list" id="followupList"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="reportsView" data-view="reports">
+          <div class="report-layout">
+            <section class="work-section">
+              <div class="section-heading">
+                <div>
+                  <h2>智能汇报</h2>
+                  <p>自动汇总进展、风险、决策和下一步动作。</p>
+                </div>
+                <div class="button-row">
+                  <div class="segmented" id="reportMode" role="tablist" aria-label="汇报类型">
+                    <button class="is-active" data-report="weekly" type="button">周报</button>
+                    <button data-report="executive" type="button">管理层</button>
+                    <button data-report="risk" type="button">风险</button>
+                  </div>
+                  <button class="secondary-button" id="copyReportBtn" type="button">
+                    <span data-icon="copy"></span>
+                    复制
+                  </button>
+                  <button class="primary-button" id="saveReportBtn" type="button">
+                    <span data-icon="check"></span>
+                    存入记忆
+                  </button>
+                </div>
+              </div>
+              <textarea class="report-output" id="reportOutput" readonly></textarea>
+            </section>
+            <section class="work-section">
+              <div class="section-heading">
+                <h2>汇报依据</h2>
+              </div>
+              <div class="report-evidence" id="reportEvidence"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="memoryView" data-view="memory">
+          <div class="memory-layout">
+            <section class="work-section">
+              <div class="section-heading">
+                <div>
+                  <h2>项目记忆</h2>
+                  <p>每一次确认都会留下来源，方便回溯任务、风险和决策。</p>
+                </div>
+              </div>
+              <div class="timeline" id="memoryTimeline"></div>
+            </section>
+            <section class="work-section">
+              <div class="section-heading">
+                <h2>决策记录</h2>
+              </div>
+              <div class="decision-list" id="decisionList"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="auditView" data-view="audit">
+          <div class="audit-layout">
+            <section class="work-section">
+              <div class="section-heading">
+                <div>
+                  <h2>审计追踪</h2>
+                  <p>记录谁在什么时间，对哪个项目做了什么关键操作。</p>
+                </div>
+                <button class="secondary-button" id="exportAuditBtn" type="button">
+                  <span data-icon="download"></span>
+                  导出审计
+                </button>
+              </div>
+              <div class="audit-list" id="auditList"></div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <section class="floating-language-entry" aria-label="全局语言输入">
+      <div class="floating-input-shell">
+        <button class="floating-icon-button" id="globalAddBtn" type="button" aria-label="添加附件" title="添加附件">
+          <span data-icon="plus"></span>
+        </button>
+        <div class="attachment-menu" id="globalAttachmentMenu" hidden>
+          <label>
+            导入文本
+            <input id="globalTextFileInput" type="file" accept=".txt,.md,.csv,text/plain,text/markdown" />
+          </label>
+          <label>
+            上传附件
+            <input id="globalAttachmentInput" type="file" multiple />
+          </label>
+          <label>
+            拍照
+            <input id="globalPhotoInput" type="file" accept="image/*" capture="environment" />
+          </label>
+          <label>
+            录音
+            <input id="globalAudioFileInput" type="file" accept="audio/*" />
+          </label>
+        </div>
+        <textarea id="globalLanguageInput" rows="1" placeholder="输入一句项目更新，或直接提问"></textarea>
+        <button class="floating-icon-button" id="globalVoiceBtn" type="button" aria-label="语音输入" title="语音输入">
+          <span data-icon="mic"></span>
+        </button>
+        <button class="floating-send-button" id="globalRunBtn" type="button" aria-label="发送" title="发送">
+          <span data-icon="sendUp"></span>
+        </button>
+      </div>
+    </section>
+
+    <dialog id="editDialog">
+      <form method="dialog" class="dialog-card" id="editForm">
+        <div class="section-heading">
+          <h2 id="dialogTitle">编辑</h2>
+          <button class="icon-button" value="cancel" type="submit" aria-label="关闭" title="关闭">
+            <span data-icon="x"></span>
+          </button>
+        </div>
+        <div class="form-grid" id="dialogFields"></div>
+        <div class="dialog-actions">
+          <button class="secondary-button" value="cancel" type="submit">取消</button>
+          <button class="primary-button" id="dialogSaveBtn" value="default" type="submit">保存</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="projectWizardDialog">
+      <div class="dialog-card wizard-card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">AI Project Setup</p>
+            <h2>AI 建项向导</h2>
+          </div>
+          <button class="icon-button" id="closeWizardBtn" type="button" aria-label="关闭" title="关闭">
+            <span data-icon="x"></span>
+          </button>
+        </div>
+
+        <div class="wizard-progress" aria-label="建项进度">
+          <span id="wizardProgressBar"></span>
+        </div>
+
+        <div class="wizard-layout">
+          <section class="wizard-chat" aria-label="AI 建项问答">
+            <div class="wizard-question">
+              <span class="status-pill muted" id="wizardStepLabel">第 1 步</span>
+              <h3 id="wizardQuestion">这个项目叫什么？</h3>
+              <p id="wizardHelp"></p>
+            </div>
+            <div class="field compact-field">
+              <label for="projectTemplateSelect">项目模板</label>
+              <select id="projectTemplateSelect"></select>
+            </div>
+            <textarea id="wizardAnswer" placeholder="输入你的回答"></textarea>
+            <div class="suggestion-row" id="wizardSuggestions"></div>
+            <div class="dialog-actions">
+              <button class="secondary-button" id="wizardBackBtn" type="button">上一步</button>
+              <button class="secondary-button" id="wizardSkipBtn" type="button">跳过</button>
+              <button class="primary-button" id="wizardNextBtn" type="button">下一步</button>
+            </div>
+          </section>
+
+          <section class="wizard-preview" aria-label="项目框架预览">
+            <div class="section-heading">
+              <h2>将生成</h2>
+            </div>
+            <div id="wizardPreview"></div>
+          </section>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="aiSettingsDialog">
+      <form method="dialog" class="dialog-card" id="aiSettingsForm">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">AI Runtime</p>
+            <h2>AI 设置</h2>
+          </div>
+          <button class="icon-button" value="cancel" type="submit" aria-label="关闭" title="关闭">
+            <span data-icon="x"></span>
+          </button>
+        </div>
+        <div class="form-grid">
+          <div class="field full">
+            <label for="aiProvider">模型供应商</label>
+            <select id="aiProvider" name="provider"></select>
+          </div>
+          <div class="field full">
+            <label for="aiMode">运行模式</label>
+            <select id="aiMode" name="mode">
+              <option value="mock">本地模拟，不调用外部 API</option>
+              <option value="codex-test">Codex 临时测试</option>
+              <option value="openai-responses">OpenAI Responses API</option>
+              <option value="openai-chat">OpenAI-compatible Chat Completions</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="aiBaseUrl">Base URL</label>
+            <input id="aiBaseUrl" name="baseUrl" type="url" placeholder="https://api.openai.com/v1" />
+          </div>
+          <div class="field">
+            <label for="aiModel">模型</label>
+            <input id="aiModel" name="model" type="text" placeholder="chat-latest" />
+          </div>
+          <div class="field full">
+            <label for="aiApiKey">API Key</label>
+            <input id="aiApiKey" name="apiKey" type="password" autocomplete="off" placeholder="sk-..." />
+          </div>
+          <div class="field full">
+            <label for="aiProviderHint">供应商说明</label>
+            <textarea id="aiProviderHint" readonly>选择供应商后会自动填充推荐接口参数。</textarea>
+          </div>
+          <div class="field full">
+            <label for="aiStatus">状态</label>
+            <textarea id="aiStatus" readonly>当前为本地模拟模式。</textarea>
+          </div>
+          <div class="field full">
+            <label for="aiTestPrompt">测试提示词</label>
+            <textarea id="aiTestPrompt">请基于当前项目，生成一段简短项目状态摘要，并列出 3 个下一步动作。</textarea>
+          </div>
+          <div class="field full">
+            <label for="aiTestOutput">AI 输出</label>
+            <textarea id="aiTestOutput" readonly>点击“测试输出”后会显示模型返回内容。</textarea>
+          </div>
+        </div>
+        <div class="dialog-actions">
+          <button class="secondary-button" id="testAiBtn" type="button">测试连接</button>
+          <button class="secondary-button" id="runAiTestBtn" type="button">测试输出</button>
+          <button class="secondary-button" value="cancel" type="submit">取消</button>
+          <button class="primary-button" value="default" type="submit">保存</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="authDialog">
+      <form method="dialog" class="dialog-card compact-dialog" id="authForm">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Account</p>
+            <h2>身份认证</h2>
+          </div>
+          <button class="icon-button" value="cancel" type="submit" aria-label="关闭" title="关闭">
+            <span data-icon="x"></span>
+          </button>
+        </div>
+        <div class="wechat-card">
+          <div class="wechat-mark">微</div>
+          <div>
+            <strong id="authProviderTitle">微信/企业微信授权</strong>
+            <p id="authProviderCopy">授权用于确认操作者身份；审计追踪以真实姓名和组织为准。</p>
+          </div>
+        </div>
+        <div class="auth-provider-grid">
+          <button class="secondary-button" id="wechatLoginBtn" type="button">微信扫码登录</button>
+          <button class="secondary-button" id="wecomLoginBtn" type="button">企业微信登录</button>
+        </div>
+        <div class="form-grid">
+          <div class="field">
+            <label for="wechatName">显示名称</label>
+            <input id="wechatName" name="name" type="text" placeholder="例如：项目负责人" />
+          </div>
+          <div class="field">
+            <label for="realName">真实姓名</label>
+            <input id="realName" name="realName" type="text" placeholder="例如：张三" />
+          </div>
+          <div class="field">
+            <label for="wechatOrg">组织/团队</label>
+            <input id="wechatOrg" name="org" type="text" placeholder="例如：产品团队" />
+          </div>
+          <div class="field">
+            <label for="identityContact">手机号或企业邮箱</label>
+            <input id="identityContact" name="contact" type="text" placeholder="用于管理员核验身份" />
+          </div>
+          <div class="field full">
+            <label for="authStatusText">认证状态</label>
+            <textarea id="authStatusText" readonly>正在读取认证配置...</textarea>
+          </div>
+        </div>
+        <div class="dialog-actions">
+          <button class="secondary-button" id="logoutBtn" type="button">退出登录</button>
+          <button class="primary-button" value="default" type="submit">保存实名信息</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
