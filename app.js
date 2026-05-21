@@ -2,7 +2,7 @@ const STORAGE_KEY = "yanpm-language-project-v1";
 const AI_CONFIG_KEY = "yanpm-ai-runtime-v1";
 const AUTH_KEY = "yanpm-auth-v1";
 const DAY = 24 * 60 * 60 * 1000;
-const AI_TIMEOUT_MS = 45000;
+const AI_TIMEOUT_MS = 25000;
 const AI_CONNECTION_TEST_MAX_TOKENS = 32;
 const AI_OUTPUT_TEST_MAX_TOKENS = 800;
 const PROJECT_DATA_KEYS = ["project", "members", "milestones", "tasks", "risks", "decisions", "memory", "proposals", "chat", "audit"];
@@ -2532,15 +2532,17 @@ async function callAiText({ purpose, instruction, user, context, schemaHint, max
   }
 
   if (aiConfig.mode === "openai-chat") {
-    const data = await postJson(buildAiEndpointUrl(baseUrl, "/chat/completions"), {
-      model: aiConfig.model,
-      messages: [
-        { role: "system", content: instruction },
-        { role: "user", content: prompt }
-      ],
-      temperature: resolveChatTemperature(baseUrl, aiConfig.model),
-      ...(maxTokens ? { max_tokens: maxTokens } : {})
-    });
+    const data = await postJson(
+      buildAiEndpointUrl(baseUrl, "/chat/completions"),
+      buildChatCompletionBody({
+        baseUrl,
+        model: aiConfig.model,
+        instruction,
+        prompt,
+        maxTokens,
+        purpose
+      })
+    );
     return extractResponseText(data);
   }
 
@@ -2563,8 +2565,34 @@ function buildAiEndpointUrl(baseUrl, suffix) {
 
 function resolveChatTemperature(baseUrl, model) {
   const text = `${baseUrl} ${model}`.toLowerCase();
+  if (isKimiK26ChatModel(baseUrl, model)) return null;
   if (text.includes("moonshot") || text.includes("kimi-k2.6")) return 1;
   return 0.2;
+}
+
+function buildChatCompletionBody({ baseUrl, model, instruction, prompt, maxTokens, purpose }) {
+  const body = {
+    model,
+    messages: [
+      { role: "system", content: instruction || "你是中文 AI 项目管理助理。" },
+      { role: "user", content: prompt || "" }
+    ]
+  };
+  const temperature = resolveChatTemperature(baseUrl, model);
+  if (temperature !== null) body.temperature = temperature;
+  if (maxTokens) {
+    if (isKimiK26ChatModel(baseUrl, model)) body.max_completion_tokens = maxTokens;
+    else body.max_tokens = maxTokens;
+  }
+  if (isKimiK26ChatModel(baseUrl, model) && ["connection-test", "manual-output-test"].includes(purpose)) {
+    body.thinking = { type: "disabled" };
+  }
+  return body;
+}
+
+function isKimiK26ChatModel(baseUrl, model) {
+  const text = `${baseUrl} ${model}`.toLowerCase();
+  return (text.includes("moonshot") || text.includes("kimi")) && /kimi-k2\.[56]/.test(text);
 }
 
 async function postJson(url, body) {
