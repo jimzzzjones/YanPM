@@ -593,6 +593,17 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+    <script>
+      window.__YANPM_TIMEOUT_OVERRIDES__ = { aiRequestMs: 45000 };
+      (() => {
+        const nativeSetTimeout = window.setTimeout.bind(window);
+        window.setTimeout = (handler, timeout, ...args) => {
+          const aiTimeout = window.__YANPM_TIMEOUT_OVERRIDES__?.aiRequestMs;
+          const nextTimeout = timeout === 20000 && aiTimeout ? aiTimeout : timeout;
+          return nativeSetTimeout(handler, nextTimeout, ...args);
+        };
+      })();
+    </script>
     <script src="./app.js"></script>
   </body>
 </html>
