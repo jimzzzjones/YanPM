@@ -12,8 +12,8 @@ const dataDir = path.join(root, "data");
 const stateFile = path.join(dataDir, "state.json");
 const port = Number(process.env.PORT || 8787);
 const host = process.env.HOST || "127.0.0.1";
-const configuredAiTimeoutMs = Number(process.env.AI_TIMEOUT_MS || 45000);
-const aiTimeoutMs = Number.isFinite(configuredAiTimeoutMs) ? Math.max(configuredAiTimeoutMs, 45000) : 45000;
+const configuredAiTimeoutMs = Number(process.env.AI_TIMEOUT_MS || 25000);
+const aiTimeoutMs = Number.isFinite(configuredAiTimeoutMs) ? Math.min(Math.max(configuredAiTimeoutMs, 5000), 25000) : 25000;
 const codexTimeoutMs = Number(process.env.CODEX_TIMEOUT_MS || 60000);
 const codexCommand = resolveCodexCommand();
 const publicUrl = (process.env.YANPM_PUBLIC_URL || `http://127.0.0.1:${port}`).replace(/\/+$/, "");
@@ -368,15 +368,14 @@ async function handleAi(req, res) {
     mode === "openai-chat"
       ? {
           url: buildAiEndpointUrl(baseUrl, "/chat/completions"),
-          body: {
+          body: buildChatCompletionBody({
+            baseUrl,
             model,
-            messages: [
-              { role: "system", content: body.instruction || "你是中文 AI 项目管理助理。" },
-              { role: "user", content: body.prompt || body.user || "" }
-            ],
-            temperature: resolveChatTemperature(baseUrl, model),
-            ...(maxTokens ? { max_tokens: maxTokens } : {})
-          }
+            instruction: body.instruction,
+            prompt: body.prompt || body.user || "",
+            maxTokens,
+            purpose: body.purpose
+          })
         }
       : {
           url: buildAiEndpointUrl(baseUrl, "/responses"),
@@ -395,8 +394,34 @@ async function handleAi(req, res) {
 
 function resolveChatTemperature(baseUrl, model) {
   const text = `${baseUrl} ${model}`.toLowerCase();
+  if (isKimiK26ChatModel(baseUrl, model)) return null;
   if (text.includes("moonshot") || text.includes("kimi-k2.6")) return 1;
   return 0.2;
+}
+
+function buildChatCompletionBody({ baseUrl, model, instruction, prompt, maxTokens, purpose }) {
+  const body = {
+    model,
+    messages: [
+      { role: "system", content: instruction || "你是中文 AI 项目管理助理。" },
+      { role: "user", content: prompt || "" }
+    ]
+  };
+  const temperature = resolveChatTemperature(baseUrl, model);
+  if (temperature !== null) body.temperature = temperature;
+  if (maxTokens) {
+    if (isKimiK26ChatModel(baseUrl, model)) body.max_completion_tokens = maxTokens;
+    else body.max_tokens = maxTokens;
+  }
+  if (isKimiK26ChatModel(baseUrl, model) && ["connection-test", "manual-output-test"].includes(purpose)) {
+    body.thinking = { type: "disabled" };
+  }
+  return body;
+}
+
+function isKimiK26ChatModel(baseUrl, model) {
+  const text = `${baseUrl} ${model}`.toLowerCase();
+  return (text.includes("moonshot") || text.includes("kimi")) && /kimi-k2\.[56]/.test(text);
 }
 
 function normalizeMaxTokens(value) {
