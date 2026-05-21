@@ -2517,7 +2517,7 @@ async function callAiText({ purpose, instruction, user, context, schemaHint, max
       prompt,
       maxTokens
     });
-    return data?.text || "";
+    return data?.text || extractResponseText(data?.raw);
   }
 
   if (!aiConfig.apiKey) throw new Error("缺少 API Key");
@@ -2541,7 +2541,7 @@ async function callAiText({ purpose, instruction, user, context, schemaHint, max
       temperature: resolveChatTemperature(baseUrl, aiConfig.model),
       ...(maxTokens ? { max_tokens: maxTokens } : {})
     });
-    return data?.choices?.[0]?.message?.content || "";
+    return extractResponseText(data);
   }
 
   return "";
@@ -2606,15 +2606,41 @@ async function postJson(url, body) {
 }
 
 function extractResponseText(data) {
-  if (data?.output_text) return data.output_text;
   const parts = [];
-  (data?.output || []).forEach((item) => {
-    (item.content || []).forEach((content) => {
-      if (content.text) parts.push(content.text);
-      if (content.type === "output_text" && content.text) parts.push(content.text);
-    });
+  appendTextPart(parts, data?.output_text);
+  appendTextPart(parts, data?.text);
+  (data?.choices || []).forEach((choice) => {
+    appendTextPart(parts, choice?.message?.content);
+    appendTextPart(parts, choice?.delta?.content);
+    appendTextPart(parts, choice?.text);
   });
-  return parts.join("\n").trim();
+  (data?.output || []).forEach((item) => {
+    appendTextPart(parts, item?.content);
+    appendTextPart(parts, item?.output_text);
+    appendTextPart(parts, item?.text);
+  });
+  return parts.filter(Boolean).join("\n").trim();
+}
+
+function appendTextPart(parts, value) {
+  if (!value) return;
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (text) parts.push(text);
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item) => appendTextPart(parts, item));
+    return;
+  }
+  if (typeof value !== "object") return;
+  appendTextPart(parts, value.text);
+  appendTextPart(parts, value.output_text);
+  appendTextPart(parts, value.content);
+}
+
+function emptyAiOutputMessage() {
+  return "模型请求已完成，但没有返回可展示文本。请检查模型名和运行模式是否匹配；Kimi 可先试 kimi-latest 或 moonshot-v1-8k。";
 }
 
 function parseJsonFromText(text) {
@@ -4311,7 +4337,7 @@ async function runAiOutputTest() {
             context: buildAiProjectContext(),
             maxTokens: AI_OUTPUT_TEST_MAX_TOKENS
           });
-    $("#aiTestOutput").value = text || "模型没有返回文本。";
+    $("#aiTestOutput").value = text || emptyAiOutputMessage();
   } catch (error) {
     $("#aiTestOutput").value = `测试失败：${error.message}\n\n如果浏览器直连 API 失败，请切换到本地模拟，或使用后端代理作为 Base URL。`;
   } finally {
