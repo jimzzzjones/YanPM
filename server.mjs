@@ -388,7 +388,9 @@ async function handleAi(req, res) {
         };
 
   const data = await postUpstream(upstream.url, upstream.body, apiKey);
-  return sendJson(res, 200, { text: extractResponseText(data), raw: data });
+  const text = extractResponseText(data);
+  if (!text) return sendJson(res, 502, { error: describeEmptyAiResponse(data) });
+  return sendJson(res, 200, { text, raw: data });
 }
 
 function resolveChatTemperature(baseUrl, model) {
@@ -543,16 +545,50 @@ async function postUpstream(url, body, apiKey) {
 }
 
 function extractResponseText(data) {
-  if (data?.output_text) return data.output_text;
-  if (data?.choices?.[0]?.message?.content) return data.choices[0].message.content;
   const parts = [];
-  for (const item of data?.output || []) {
-    for (const content of item.content || []) {
-      if (content.text) parts.push(content.text);
-      if (content.type === "output_text" && content.text) parts.push(content.text);
-    }
+  appendTextPart(parts, data?.output_text);
+  appendTextPart(parts, data?.text);
+  for (const choice of data?.choices || []) {
+    appendTextPart(parts, choice?.message?.content);
+    appendTextPart(parts, choice?.delta?.content);
+    appendTextPart(parts, choice?.text);
   }
-  return parts.join("\n").trim();
+  for (const item of data?.output || []) {
+    appendTextPart(parts, item?.content);
+    appendTextPart(parts, item?.output_text);
+    appendTextPart(parts, item?.text);
+  }
+  return parts.filter(Boolean).join("\n").trim();
+}
+
+function appendTextPart(parts, value) {
+  if (!value) return;
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (text) parts.push(text);
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) appendTextPart(parts, item);
+    return;
+  }
+  if (typeof value !== "object") return;
+  appendTextPart(parts, value.text);
+  appendTextPart(parts, value.output_text);
+  appendTextPart(parts, value.content);
+}
+
+function describeEmptyAiResponse(data) {
+  const message = data?.error?.message || data?.message;
+  if (message) return `模型接口返回错误：${message}`;
+
+  const finishReason = data?.choices?.[0]?.finish_reason || data?.choices?.[0]?.finishReason;
+  const status = data?.status || data?.incomplete_details?.reason;
+  const details = [finishReason ? `finish_reason=${finishReason}` : "", status ? `status=${status}` : ""]
+    .filter(Boolean)
+    .join("，");
+  const suffix = details ? `（${details}）` : "";
+  return `模型请求已返回，但没有可展示文本${suffix}。请确认当前模型支持所选运行模式，或先改用 kimi-latest / moonshot-v1-8k 再测试。`;
 }
 
 async function serveStatic(req, res) {
