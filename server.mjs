@@ -12,7 +12,8 @@ const dataDir = path.join(root, "data");
 const stateFile = path.join(dataDir, "state.json");
 const port = Number(process.env.PORT || 8787);
 const host = process.env.HOST || "127.0.0.1";
-const aiTimeoutMs = Number(process.env.AI_TIMEOUT_MS || 20000);
+const configuredAiTimeoutMs = Number(process.env.AI_TIMEOUT_MS || 45000);
+const aiTimeoutMs = Number.isFinite(configuredAiTimeoutMs) ? Math.max(configuredAiTimeoutMs, 45000) : 45000;
 const codexTimeoutMs = Number(process.env.CODEX_TIMEOUT_MS || 60000);
 const codexCommand = resolveCodexCommand();
 const publicUrl = (process.env.YANPM_PUBLIC_URL || `http://127.0.0.1:${port}`).replace(/\/+$/, "");
@@ -362,6 +363,7 @@ async function handleAi(req, res) {
     return sendJson(res, 400, { error: "缺少模型名或 Endpoint ID。请在前端 AI 设置中填写。" });
   }
 
+  const maxTokens = normalizeMaxTokens(body.maxTokens || defaultMaxTokensForPurpose(body.purpose));
   const upstream =
     mode === "openai-chat"
       ? {
@@ -372,14 +374,16 @@ async function handleAi(req, res) {
               { role: "system", content: body.instruction || "你是中文 AI 项目管理助理。" },
               { role: "user", content: body.prompt || body.user || "" }
             ],
-            temperature: resolveChatTemperature(baseUrl, model)
+            temperature: resolveChatTemperature(baseUrl, model),
+            ...(maxTokens ? { max_tokens: maxTokens } : {})
           }
         }
       : {
           url: buildAiEndpointUrl(baseUrl, "/responses"),
           body: {
             model,
-            input: body.prompt || body.user || ""
+            input: body.prompt || body.user || "",
+            ...(maxTokens ? { max_output_tokens: maxTokens } : {})
           }
         };
 
@@ -391,6 +395,18 @@ function resolveChatTemperature(baseUrl, model) {
   const text = `${baseUrl} ${model}`.toLowerCase();
   if (text.includes("moonshot") || text.includes("kimi-k2.6")) return 1;
   return 0.2;
+}
+
+function normalizeMaxTokens(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.min(Math.max(Math.round(parsed), 16), 4096);
+}
+
+function defaultMaxTokensForPurpose(purpose) {
+  if (purpose === "connection-test") return 32;
+  if (purpose === "manual-output-test") return 220;
+  return null;
 }
 
 async function runCodexTest({ purpose, instruction, prompt }) {
