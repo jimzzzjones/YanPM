@@ -2,7 +2,9 @@ const STORAGE_KEY = "yanpm-language-project-v1";
 const AI_CONFIG_KEY = "yanpm-ai-runtime-v1";
 const AUTH_KEY = "yanpm-auth-v1";
 const DAY = 24 * 60 * 60 * 1000;
-const AI_TIMEOUT_MS = 20000;
+const AI_TIMEOUT_MS = 45000;
+const AI_CONNECTION_TEST_MAX_TOKENS = 32;
+const AI_OUTPUT_TEST_MAX_TOKENS = 220;
 const PROJECT_DATA_KEYS = ["project", "members", "milestones", "tasks", "risks", "decisions", "memory", "proposals", "chat", "audit"];
 const volatileStorage = new Map();
 const backendBridge = {
@@ -2475,7 +2477,7 @@ async function callAiJson(payload) {
   return parseJsonFromText(text);
 }
 
-async function callAiText({ purpose, instruction, user, context, schemaHint }) {
+async function callAiText({ purpose, instruction, user, context, schemaHint, maxTokens }) {
   assertLiveAiConfig();
   const baseUrl = aiConfig.baseUrl.replace(/\/+$/, "");
   const prompt = [
@@ -2512,7 +2514,8 @@ async function callAiText({ purpose, instruction, user, context, schemaHint }) {
       apiKey: aiConfig.apiKey,
       purpose,
       instruction,
-      prompt
+      prompt,
+      maxTokens
     });
     return data?.text || "";
   }
@@ -2522,7 +2525,8 @@ async function callAiText({ purpose, instruction, user, context, schemaHint }) {
   if (aiConfig.mode === "openai-responses") {
     const data = await postJson(buildAiEndpointUrl(baseUrl, "/responses"), {
       model: aiConfig.model,
-      input: prompt
+      input: prompt,
+      ...(maxTokens ? { max_output_tokens: maxTokens } : {})
     });
     return extractResponseText(data);
   }
@@ -2534,7 +2538,8 @@ async function callAiText({ purpose, instruction, user, context, schemaHint }) {
         { role: "system", content: instruction },
         { role: "user", content: prompt }
       ],
-      temperature: resolveChatTemperature(baseUrl, aiConfig.model)
+      temperature: resolveChatTemperature(baseUrl, aiConfig.model),
+      ...(maxTokens ? { max_tokens: maxTokens } : {})
     });
     return data?.choices?.[0]?.message?.content || "";
   }
@@ -4278,7 +4283,8 @@ async function testAiConnection() {
       purpose: "connection-test",
       instruction: "你是连接测试助手。请只回复：连接成功。",
       user: "请回复连接成功。",
-      context: {}
+      context: {},
+      maxTokens: AI_CONNECTION_TEST_MAX_TOKENS
     });
     $("#aiStatus").value = `连接成功。\n模型返回：${text || "已收到响应"}`;
   } catch (error) {
@@ -4292,7 +4298,7 @@ async function runAiOutputTest() {
   saveAiSettingsFromForm();
   const prompt = $("#aiTestPrompt").value.trim() || "请生成一段项目状态摘要。";
   $("#runAiTestBtn").disabled = true;
-  $("#aiTestOutput").value = "正在生成测试输出...";
+  $("#aiTestOutput").value = `正在生成测试输出，最多等待 ${AI_TIMEOUT_MS / 1000} 秒...`;
   try {
     const text =
       aiConfig.mode === "mock"
@@ -4300,9 +4306,10 @@ async function runAiOutputTest() {
         : await callAiText({
             purpose: "manual-output-test",
             instruction:
-              "你是中文 AI 项目管理助理。请基于项目上下文回答用户测试提示，输出要具体、自然、可执行。",
+              "你是中文 AI 项目管理助理。请基于项目上下文回答用户测试提示，输出要具体、自然、可执行，控制在 300 字以内。",
             user: prompt,
-            context: buildAiProjectContext()
+            context: buildAiProjectContext(),
+            maxTokens: AI_OUTPUT_TEST_MAX_TOKENS
           });
     $("#aiTestOutput").value = text || "模型没有返回文本。";
   } catch (error) {
