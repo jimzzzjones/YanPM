@@ -412,7 +412,7 @@ function normalizeMaxTokens(value) {
 
 function defaultMaxTokensForPurpose(purpose) {
   if (purpose === "connection-test") return 32;
-  if (purpose === "manual-output-test") return 500;
+  if (purpose === "manual-output-test") return 220;
   return null;
 }
 
